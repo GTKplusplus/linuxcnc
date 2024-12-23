@@ -263,4 +263,9 @@ static inline double findVPeak(double a_t_max, double distance)
 {
     return pmSqrt(a_t_max * distance);
 }
+
+static inline double findAPeak(double j_max, double distance)
+{
+    return j_max * cbrt(j_max/distance);
+}
 #endif

@@ -67,6 +67,7 @@ static void(  *_SetRotaryUnlock)(int,int);
 static int (  *_GetRotaryIsUnlocked)(int);
 static double(*_axis_get_vel_limit)(int);
 static double(*_axis_get_acc_limit)(int);
+static double(*_axis_get_jerk_limit)(int);
 
 void tpMotFunctions(void(  *pDioWrite)(int,char)
                    ,void(  *pAioWrite)(int,double)
@@ -74,6 +75,7 @@ void tpMotFunctions(void(  *pDioWrite)(int,char)
                    ,int (  *pGetRotaryIsUnlocked)(int)
                    ,double(*paxis_get_vel_limit)(int)
                    ,double(*paxis_get_acc_limit)(int)
+                   ,double(*paxis_get_jerk_limit)(int)
                    )
 {
     _DioWrite            = *pDioWrite;
@@ -82,6 +84,7 @@ void tpMotFunctions(void(  *pDioWrite)(int,char)
     _GetRotaryIsUnlocked = *pGetRotaryIsUnlocked;
     _axis_get_vel_limit  = *paxis_get_vel_limit;
     _axis_get_acc_limit  = *paxis_get_acc_limit;
+    _axis_get_jerk_limit = *paxis_get_jerk_limit;
 }
 
 void tpMotData(emcmot_status_t *pstatus
@@ -193,6 +196,17 @@ STATIC int tpGetMachineVelBounds(PmCartesian  * const vel_bound) {
     vel_bound->x = _axis_get_vel_limit(0); //0==>x
     vel_bound->y = _axis_get_vel_limit(1); //1==>y
     vel_bound->z = _axis_get_vel_limit(2); //2==>z
+    return TP_ERR_OK;
+}
+
+STATIC int tpGetMachineJerkBounds(PmCartesian  * const jerk_bound) {
+    if (!jerk_bound) {
+        return TP_ERR_FAIL;
+    }
+
+    jerk_bound->x = _axis_get_jerk_limit(0); //0==>x
+    jerk_bound->y = _axis_get_jerk_limit(1); //1==>y
+    jerk_bound->z = _axis_get_jerk_limit(2); //2==>z
     return TP_ERR_OK;
 }
 
@@ -495,7 +509,9 @@ int tpInit(TP_STRUCT * const tp)
     tp->ini_maxvel = 0.0;
     //Accelerations
     tp->aLimit = 0.0;
+    tp->jLimit = 0.0;
     PmCartesian acc_bound;
+    PmCartesian jerk_bound;
     //FIXME this acceleration bound isn't valid (nor is it used)
     if (emcmotStatus == 0) {
        rtapi_print("!!!tpInit: NULL emcmotStatus, bye\n\n");
@@ -503,6 +519,9 @@ int tpInit(TP_STRUCT * const tp)
     }
     tpGetMachineAccelBounds(&acc_bound);
     tpGetMachineActiveLimit(&tp->aMax, &acc_bound);
+    
+    tpGetMachineJerkBounds(&jerk_bound);
+    tpGetMachineActiveLimit(&tp->jMax, &jerk_bound);
     //Angular limits
     tp->wMax = 0.0;
     tp->wDotMax = 0.0;
@@ -589,6 +608,17 @@ int tpSetAmax(TP_STRUCT * const tp, double aMax)
     return TP_ERR_OK;
 }
 
+/** Sets the max jerk for the trajectory planner. */
+int tpSetJmax(TP_STRUCT * const tp, double jMax)
+{
+    if (0 == tp || jMax <= 0.0) {
+        return TP_ERR_FAIL;
+    }
+
+    tp->jMax = jMax;
+
+    return TP_ERR_OK;
+}
 /**
  * Sets the id that will be used for the next appended motions.
  * nextId is incremented so that the next time a motion is appended its id will
@@ -763,7 +793,33 @@ STATIC double tpCalculateTriangleVel(TC_STRUCT const *tc) {
         length /= 2.0;
     }
     return findVPeak(acc_scaled, length);
+} 
+//prototype: IMPLEMENT tcGetTangentialMaxJerk, findDeltaV with requisite adjustments
+/**
+ * Find the max acceleration a segment can achieve if its velocity profile is s-curve
+ * This is used to estimate blend velocity, though by itself is not enough
+ * (since requested velocity and max velocity could be lower).
+ * @note this also requires modification for the functions using it to calculate v from amax
+ */
+//MYTODO this is a prototype, and needs to be tested, math is not verified, and probably requires further code
+STATIC double tpCalculateScurveDeltaAccel(TC_STRUCT const *tc){
+    double jerk_scaled = tcGetTangentialMaxJerk(tc);
+    double length = tc->target;
+    if (!tc->finalized) {
+        // blending may remove up to 1/2 of the segment
+        length /= 2.0;
+    }
+    // given the halved length of the segment, I assume I need to accelerate and decelerate
+    // over the full length of the segment
+    // assuming I never hit the max acceleration,
+    // the max accel is determined by the jerk over 4 segments
+    // from a halved length, I can calculate the max accel
+    return findAPeak(jerk_scaled, length/2.0);
+
 }
+
+
+
 
 /**
  * Handles the special case of blending into an unfinalized segment.

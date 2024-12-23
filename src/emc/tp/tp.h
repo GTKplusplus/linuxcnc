@@ -54,11 +54,11 @@ int tpAddRigidTap(TP_STRUCT * const tp,
         double scale,
         struct state_tag_t tag);
 int tpAddLine(TP_STRUCT * const tp, EmcPose end, int canon_motion_type,
-	      double vel, double ini_maxvel, double acc, unsigned char enables,
+	      double vel, double ini_maxvel, double maxacc, double jerk, unsigned char enables,
 	      char atspeed, int indexrotary, struct state_tag_t tag);
 int tpAddCircle(TP_STRUCT * const tp, EmcPose end, PmCartesian center,
 		PmCartesian normal, int turn, int canon_motion_type, double vel,
-		double ini_maxvel, double acc, unsigned char enables,
+		double ini_maxvel, double maxacc, double jerk, unsigned char enables,
 		char atspeed, struct state_tag_t tag);
 int tpGetPos(TP_STRUCT const  * const tp, EmcPose * const pos);
 int tpIsDone(TP_STRUCT * const tp);
@@ -80,6 +80,7 @@ void tpMotFunctions(void(*pDioWrite)(int,char)
                    ,int( *pGetRotaryUnlock)(int)
                    ,double(*paxis_get_vel_limit)(int)
                    ,double(*paxis_get_acc_limit)(int)
+                   ,double(*paxis_get_jerk_limit)(int)
                    );
 
 void tpMotData(emcmot_status_t *
