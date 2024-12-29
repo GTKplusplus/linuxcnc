@@ -167,6 +167,7 @@ extern "C" {
 	EMCMOT_SET_JOINT_MAX_FERROR,    /* maximum following error, input units */
 	EMCMOT_SET_JOINT_VEL_LIMIT,     /* set the max joint vel */
 	EMCMOT_SET_JOINT_ACC_LIMIT,     /* set the max joint accel */
+	EMCMOT_SET_JOINT_JERK_LIMIT,    /* set the max joint jerk */
 	EMCMOT_SET_JOINT_HOMING_PARAMS, /* sets joint homing parameters */
 	EMCMOT_UPDATE_JOINT_HOMING_PARAMS, /* updates some joint homing parameters */
 	EMCMOT_SET_JOINT_MOTOR_OFFSET,  /* set the offset between joint and motor */
@@ -175,6 +176,7 @@ extern "C" {
         EMCMOT_SET_AXIS_POSITION_LIMITS, /* set the axis position +/- limits */
         EMCMOT_SET_AXIS_VEL_LIMIT,      /* set the max axis vel */
         EMCMOT_SET_AXIS_ACC_LIMIT,      /* set the max axis acc */
+		EMCMOT_SET_AXIS_JERK_LIMIT,		/* set the max axis jerk */
         EMCMOT_SET_AXIS_LOCKING_JOINT,  /* set the axis locking joint */
 
         EMCMOT_SET_SPINDLE_PARAMS, /* One command to set all spindle params */
@@ -221,6 +223,7 @@ extern "C" {
         int motion_type;        /* this move is because of traverse, feed, arc, or toolchange */
         double spindlesync;     /* user units per spindle revolution, 0 = no sync */
 	double acc;		/* max acceleration */
+	double jerk;		/* max jerk */
 	double backlash;	/* amount of backlash */
 	int id;			/* id for motion */
 	int termCond;		/* termination condition */
@@ -266,7 +269,8 @@ extern "C" {
     double maxFeedScale;
     double ext_offset_vel;	/* velocity for an external axis offset */
     double ext_offset_acc;	/* acceleration for an external axis offset */
-    struct state_tag_t tag;
+    double ext_offset_jerk;	/* jerk for an external axis offset */
+	struct state_tag_t tag;
     } emcmot_command_t;
 
 /*! \todo FIXME - these packed bits might be replaced with chars

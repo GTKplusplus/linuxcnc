@@ -44,14 +44,16 @@ double ext_offset_a_or_v_ratio[EMCMOT_MAX_AXIS]; // all zero
   TYPE <LINEAR ANGULAR>        type of axis (hardcoded: X,Y,Z,U,V,W: LINEAR, A,B,C: ANGULAR)
   MAX_VELOCITY <float>         max vel for axis
   MAX_ACCELERATION <float>     max accel for axis
+  MYTODO: MAX_JERK <float>       max jerk for axis
   MIN_LIMIT <float>            minimum soft position limit
   MAX_LIMIT <float>            maximum soft position limit
-
+  
   calls:
 
   emcAxisSetMinPositionLimit(int axis, double limit);
   emcAxisSetMaxPositionLimit(int axis, double limit);
   emcAxisSetMaxVelocity(int axis, double vel, double ext_offset_vel);
+  MYTODO: emcAxisSetMaxJerk(int axis, double jerk, double ext_offset_jerk);
   emcAxisSetMaxAcceleration(int axis, double acc, double ext_offset_acc);
   */
 
@@ -61,6 +63,7 @@ static int loadAxis(int axis, EmcIniFile *axisIniFile)
     double limit;
     double maxVelocity;
     double maxAcceleration;
+    double jerk;
     int    lockingjnum = -1; // -1 ==> locking joint not used
 
     // compose string to match, axis = 0 -> AXIS_X etc.
@@ -141,6 +144,18 @@ static int loadAxis(int axis, EmcIniFile *axisIniFile)
             return -1;
         }
         old_inihal_data.axis_max_acceleration[axis] = maxAcceleration;
+
+        // set jerk for axis: jerk, ext_offset_jerk
+        jerk = DEFAULT_AXIS_MAX_JERK;
+        axisIniFile->Find(&jerk, "JERK", axisString);
+        if (0 != emcAxisSetMaxJerk(axis, jerk, 0.0)) {
+            if (emc_debug & EMC_DEBUG_CONFIG) {
+                rcs_print_error("bad return from emcAxisSetMaxJerk\n");
+            }
+            return -1;
+        }
+
+        old_inihal_data.axis_jerk[axis] = jerk;
 
         axisIniFile->Find(&lockingjnum, "LOCKING_INDEXER_JOINT", axisString);
         if (0 != emcAxisSetLockingJoint(axis, lockingjnum)) {

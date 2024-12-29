@@ -412,6 +412,28 @@ int emcJointSetMaxAcceleration(int joint, double acc)
     }
     return retval;
 }
+int emcJointSetJerk(int joint, double jerk)
+{
+    CATCH_NAN(std::isnan(jerk));
+
+    if (joint < 0 || joint >= EMCMOT_MAX_JOINTS) {
+	return 0;
+    }
+    if (jerk < 0.0) {
+	jerk = 0.0;
+    }
+    JointConfig[joint].Maxjerkel = jerk;
+    emcmotCommand.command = EMCMOT_SET_JOINT_JERK_LIMIT;
+    emcmotCommand.joint = joint;
+    emcmotCommand.jerk = jerk;
+    
+    int retval = usrmotWriteEmcmotCommand(&emcmotCommand);
+
+    if (emc_debug & EMC_DEBUG_CONFIG) {
+        rcs_print("%s(%d, %.4g) returned %d\n", __FUNCTION__, joint, jerk, retval);
+    }
+    return retval;
+}
 
 /*! functions involving cartesian Axes (X,Y,Z,A,B,C,U,V,W) */
     
@@ -512,7 +534,32 @@ int emcAxisSetMaxAcceleration(int axis, double acc,double ext_offset_acc)
     }
     return retval;
 }
+int emcAxisSetJerk(int axis, double jerk, double ext_offset_jerk)
+{
+    CATCH_NAN(std::isnan(jerk));
 
+    if (axis < 0 || axis >= EMCMOT_MAX_AXIS || !(TrajConfig.AxisMask & (1 << axis))) {
+    return 0;
+    }
+
+    if (jerk < 0.0) {
+    jerk = 0.0;
+    }
+
+    AxisConfig[axis].MaxJerk = jerk;
+    
+    emcmotCommand.command = EMCMOT_SET_AXIS_JERK_LIMIT;
+    emcmotCommand.axis = axis;
+    emcmotCommand.jerk = jerk;
+    emcmotCommand.ext_offset_jerk = ext_offset_jerk;
+    int retval = usrmotWriteEmcmotCommand(&emcmotCommand);
+
+    if (emc_debug & EMC_DEBUG_CONFIG) {
+        rcs_print("%s(%d, %.4f) returned %d\n", __FUNCTION__, axis, jerk, retval);
+    }
+    return retval;
+
+}
 int emcAxisSetLockingJoint(int axis, int joint)
 {
 
@@ -552,7 +599,14 @@ double emcAxisGetMaxAcceleration(int axis)
 
     return AxisConfig[axis].MaxAccel;
 }
+double emcAxisGetMaxJerk(int axis)
+{
+    if (axis < 0 || axis >= EMCMOT_MAX_AXIS) {
+        return 0;
+    }
 
+    return AxisConfig[axis].Jerk;
+}
 int emcAxisUpdate(EMC_AXIS_STAT stat[], int axis_mask)
 {
     int axis_num;
@@ -1128,6 +1182,18 @@ int emcTrajSetMaxAcceleration(double acc)
     return 0;
 }
 
+int emcTrajSetJerk(double jerk){
+    if (jerk < 0.0) {
+    jerk = 0.0;
+    }
+
+    TrajConfig.Jerk = jerk;
+
+    if (emc_debug & EMC_DEBUG_CONFIG) {
+        rcs_print("%s(%.4g)\n", __FUNCTION__, jerk);
+    }
+    return 0;
+}
 int emcTrajSetHome(EmcPose home)
 {
 #ifdef ISNAN_TRAP
@@ -1246,6 +1312,7 @@ int emcTrajInit()
     TrajConfig.Inited = 0;
     TrajConfig.Joints = 0;
     TrajConfig.MaxAccel = DBL_MAX;
+    TrajConfig.Jerk = DBL_MAX;
     TrajConfig.AxisMask = 0;
     TrajConfig.LinearUnits = 1.0;
     TrajConfig.AngularUnits = 1.0;

@@ -263,6 +263,30 @@ static inline double findVPeak(double a_t_max, double distance)
 {
     return pmSqrt(a_t_max * distance);
 }
+static inline double findVPeakScurve(double j_max, double a_max, double distance){
+    //calculate distance to reach a_max
+    double d_a_max = 1/ (6 * a_max * (a_max/j_max)**3);
+    if (distance/2 < d_a_max){
+        // assume no steady state, calculate instead with distance/2 and get the accel
+        double a = j_max * cbrt(j_max/(distance/2));
+        double t = sqrt(distance/a);
+        return 1/(2 * j_max * t**2);
+    }
+    else{
+        double t_to_a_stable = a_max/j_max;
+        double v_at_a_max = 1/(2* j_max * t_to_a_stable**2)
+        //assume a steady state portion with speed rising accordingly
+        // the distance to cover is the distance minus the distance to reach a_max twice
+        // to this I add the speed at a_max, which is the gain in speed during the change of acceleration period
+        // since this happens twice at the start and end of the acceleration. 
+        // the first time it's accounted for, so I only add it oncec 
+        double v_at_a_stable_end =sqrt(v_at_a_max**2 + 2 * a_max * (distance-(d_a_max*2)));
+        return return v_at_a_stable_end+ v_at_a_max;
+
+    }
+        
+}
+
 
 static inline double findAPeak(double j_max, double distance)
 {

@@ -815,8 +815,18 @@ STATIC double tpCalculateScurveDeltaAccel(TC_STRUCT const *tc){
     // the max accel is determined by the jerk over 4 segments
     // from a halved length, I can calculate the max accel
     return findAPeak(jerk_scaled, length/2.0);
-
 }
+
+STATIC double tpCalculateScurveDeltaVel(TC_STRUCT const *tc){
+    double jerk_scaled = tcGetTangentialMaxJerk(tc);
+    double length = tc->target;
+    if (!tc->finalized) {
+        // blending may remove up to 1/2 of the segment
+        length /= 2.0;
+    }
+    max_accel = min(tpCalculateScurveDeltaAccel(tc), tcGetTangentialMaxAccel(tc));
+    // knowing the jerk, and acceleration, and the length, I can calculate the max velocity
+    return findVPeakScurve(jerk_scaled, max_accel, length);
 
 
 
@@ -832,10 +842,12 @@ STATIC double tpCalculateScurveDeltaAccel(TC_STRUCT const *tc){
 STATIC double tpCalculateOptimizationInitialVel(TP_STRUCT const * const tp, TC_STRUCT * const tc)
 {
     double acc_scaled = tcGetTangentialMaxAccel(tc);
-    double triangle_vel = findVPeak(acc_scaled, tc->target);
+    //double triangle_vel = findVPeak(acc_scaled, tc->target);
+    double delta_accel = findApeak(acc_scaled, tc->target);
+    double delta_vel = findVPeakScurve(jerk_scaled, delta_accel, tc->target);
     double max_vel = tpGetMaxTargetVel(tp, tc);
     tp_debug_json_start(tpCalculateOptimizationInitialVel);
-    tp_debug_json_double(triangle_vel);
+    tp_debug_json_double(delta_vel);
     tp_debug_json_end();
     return fmin(triangle_vel, max_vel);
 }
@@ -942,6 +954,7 @@ static inline int find_max_element(double arr[], int sz)
  * mostly useful for some odd arc-to-arc cases where the blend arc becomes very
  * short (and therefore slow).
  */
+//MYTODO establish if new blend types need to be written
 STATIC tc_blend_type_t tpChooseBestBlend(TP_STRUCT const * const tp,
         TC_STRUCT * const prev_tc,
         TC_STRUCT * const tc,
@@ -999,7 +1012,7 @@ STATIC tc_blend_type_t tpChooseBestBlend(TP_STRUCT const * const tp,
     return best_blend;
 }
 
-
+//MYTODO: refactor to use jerk too
 STATIC tp_err_t tpCreateLineArcBlend(TP_STRUCT * const tp, TC_STRUCT * const prev_tc, TC_STRUCT * const tc, TC_STRUCT * const blend_tc)
 {
     tp_debug_print("-- Starting LineArc blend arc --\n");
@@ -1157,6 +1170,7 @@ STATIC tp_err_t tpCreateLineArcBlend(TP_STRUCT * const tp, TC_STRUCT * const pre
     return TP_ERR_OK;
 }
 
+//MYTODO: refactor to use jerk too
 
 STATIC tp_err_t tpCreateArcLineBlend(TP_STRUCT * const tp, TC_STRUCT * const prev_tc, TC_STRUCT * const tc, TC_STRUCT * const blend_tc)
 {
@@ -1298,6 +1312,7 @@ STATIC tp_err_t tpCreateArcLineBlend(TP_STRUCT * const tp, TC_STRUCT * const pre
     tcSetTermCond(prev_tc, tc, TC_TERM_COND_TANGENT);
     return TP_ERR_OK;
 }
+//MYTODO: refactor to use jerk too
 
 STATIC tp_err_t tpCreateArcArcBlend(TP_STRUCT * const tp, TC_STRUCT * const prev_tc, TC_STRUCT * const tc, TC_STRUCT * const blend_tc)
 {
@@ -1467,6 +1482,7 @@ STATIC tp_err_t tpCreateArcArcBlend(TP_STRUCT * const tp, TC_STRUCT * const prev
     return TP_ERR_OK;
 }
 
+//MYTODO: refactor to use jerk too
 
 STATIC tp_err_t tpCreateLineLineBlend(TP_STRUCT * const tp, TC_STRUCT * const prev_tc,
         TC_STRUCT * const tc, TC_STRUCT * const blend_tc)
@@ -1732,6 +1748,7 @@ STATIC blend_type_t tpCheckBlendArcType(
  * acceleration) will speed up and slow down to reach their target velocity,
  * creating "humps" in the velocity profile.
  */
+//MYTODO: math needs to take into account the difference in acceleration with jerk
 STATIC int tpComputeOptimalVelocity(TP_STRUCT const * const tp, TC_STRUCT * const tc, TC_STRUCT * const prev1_tc) {
     //Calculate the maximum starting velocity vs_back of segment tc, given the
     //trajectory parameters
@@ -2279,8 +2296,8 @@ STATIC int tpComputeBlendVelocity(
     double acc_this = tcGetTangentialMaxAccel(tc);
     double acc_next = tcGetTangentialMaxAccel(nexttc);
 
-    double v_reachable_this = fmin(tpCalculateTriangleVel(tc), target_vel_this);
-    double v_reachable_next = fmin(tpCalculateTriangleVel(nexttc), target_vel_next);
+    double v_reachable_this = fmin(tpCalculateScurveDeltaVel(tc), target_vel_this);
+    double v_reachable_next = fmin(tpCalculateScurveDeltaVel(nexttc), target_vel_next);
 
     /* Compute the maximum allowed blend time for each segment.
      * This corresponds to the minimum acceleration that will just barely reach
@@ -2372,6 +2389,7 @@ STATIC double estimateParabolicBlendPerformance(
 /**
  * Calculate distance update from velocity and acceleration.
  */
+//MYTODO: math needs to take into account the difference in acceleration, velocity and position with jerk
 STATIC int tcUpdateDistFromAccel(TC_STRUCT * const tc, double acc, double vel_desired, int reverse_run)
 {
     // If the resulting velocity is less than zero, than we're done. This
@@ -2438,6 +2456,7 @@ STATIC void tpDebugCycleInfo(TP_STRUCT const * const tp, TC_STRUCT const * const
  * acceleration limits. The formula has been tweaked slightly to allow a
  * non-zero velocity at the instant the target is reached.
  */
+//MYTODO: replace with tpCalculateScurveAccel
 void tpCalculateTrapezoidalAccel(TP_STRUCT const * const tp, TC_STRUCT * const tc, TC_STRUCT const * const nexttc,
         double * const acc, double * const vel_desired)
 {
@@ -2498,6 +2517,7 @@ void tpCalculateTrapezoidalAccel(TP_STRUCT const * const tp, TC_STRUCT * const t
 /**
  * Calculate "ramp" acceleration for a cycle.
  */
+//MYTODO: redo math for scurve
 STATIC int tpCalculateRampAccel(TP_STRUCT const * const tp,
         TC_STRUCT * const tc,
         TC_STRUCT const * const nexttc,

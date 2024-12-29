@@ -52,6 +52,7 @@ int ini_hal_init_pins(int numjoints);
     FIELD(hal_float_t,traj_max_velocity) \
     FIELD(hal_float_t,traj_default_acceleration) \
     FIELD(hal_float_t,traj_max_acceleration) \
+    FIELD(hal_float_t,traj_jerk) \
 \
     FIELD(hal_bit_t,traj_arc_blend_enable) \
     FIELD(hal_bit_t,traj_arc_blend_fallback_enable) \
@@ -67,6 +68,7 @@ int ini_hal_init_pins(int numjoints);
     ARRAY(hal_float_t,joint_max_limit,EMCMOT_MAX_JOINTS) \
     ARRAY(hal_float_t,joint_max_velocity,EMCMOT_MAX_JOINTS) \
     ARRAY(hal_float_t,joint_max_acceleration,EMCMOT_MAX_JOINTS) \
+    ARRAY(hal_float_t,joint_jerk,EMCMOT_MAX_JOINTS) \
     ARRAY(hal_float_t,joint_home,EMCMOT_MAX_JOINTS) \
     ARRAY(hal_float_t,joint_home_offset,EMCMOT_MAX_JOINTS) \
     ARRAY(hal_s32_t,  joint_home_sequence,EMCMOT_MAX_JOINTS) \
@@ -75,6 +77,7 @@ int ini_hal_init_pins(int numjoints);
     ARRAY(hal_float_t,axis_max_limit,EMCMOT_MAX_AXIS) \
     ARRAY(hal_float_t,axis_max_velocity,EMCMOT_MAX_AXIS) \
     ARRAY(hal_float_t,axis_max_acceleration,EMCMOT_MAX_AXIS) \
+    ARRAY(hal_float_t,axis_jerk,EMCMOT_MAX_AXIS) \
 
 struct PTR {
     template<class T>

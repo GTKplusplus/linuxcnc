@@ -89,7 +89,7 @@ static int loadTraj(EmcIniFile *trajInifile)
     EmcAngularUnits angularUnits;
     double vel;
     double acc;
-
+    double jerk;
     trajInifile->EnableExceptions(EmcIniFile::ERR_CONVERSION);
 
     try{
@@ -200,6 +200,17 @@ static int loadTraj(EmcIniFile *trajInifile)
             return -1;
         }
         old_inihal_data.traj_max_acceleration = acc;
+
+        jerk = 1e99; // let the axis values apply
+        trajInifile->Find(&acc, "JERK", "TRAJ");
+        if (0 != emcTrajSetJerk(jerk)) {
+            if (emc_debug & EMC_DEBUG_CONFIG) {
+                rcs_print("bad return value from emcTrajSetJerk\n");
+            }
+            return -1;
+        }
+        old_inihal_data.traj_jerk = jerk;
+        
 
         int arcBlendEnable = 1;
         int arcBlendFallbackEnable = 0;
