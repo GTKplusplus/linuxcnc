@@ -148,7 +148,7 @@ static int loadAxis(int axis, EmcIniFile *axisIniFile)
         // set jerk for axis: jerk, ext_offset_jerk
         jerk = DEFAULT_AXIS_MAX_JERK;
         axisIniFile->Find(&jerk, "JERK", axisString);
-        if (0 != emcAxisSetMaxJerk(axis, jerk, 0.0)) {
+        if (0 != emcAxisSetJerk(axis, jerk, 0.0)) {
             if (emc_debug & EMC_DEBUG_CONFIG) {
                 rcs_print_error("bad return from emcAxisSetMaxJerk\n");
             }
