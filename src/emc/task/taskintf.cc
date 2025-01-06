@@ -422,7 +422,7 @@ int emcJointSetJerk(int joint, double jerk)
     if (jerk < 0.0) {
 	jerk = 0.0;
     }
-    JointConfig[joint].Maxjerkel = jerk;
+    JointConfig[joint].Jerk = jerk;
     emcmotCommand.command = EMCMOT_SET_JOINT_JERK_LIMIT;
     emcmotCommand.joint = joint;
     emcmotCommand.jerk = jerk;
