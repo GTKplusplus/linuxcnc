@@ -11,7 +11,8 @@ typedef struct {
     double max_pos_limit;           /* upper soft limit on axis pos */
     double min_pos_limit;           /* lower soft limit on axis pos */
     double vel_limit;               /* upper limit of axis speed */
-    double acc_limit;               /* upper limit of axis accel */
+    double acc_limit;
+    double jerk_limit;               /* upper limit of axis accel */
     simple_tp_t teleop_tp;          /* planner for teleop mode motion */
 
     int old_ajog_counts;            /* prior value, used for deltas */
@@ -190,6 +191,11 @@ void axis_set_acc_limit(int axis_num, double acc)
     axis_array[axis_num].acc_limit = acc;
 }
 
+void axis_set_jerk_limit(int axis_num, double jerk)
+{
+    axis_array[axis_num].jerk_limit = jerk;
+}
+
 void axis_set_ext_offset_vel_limit(int axis_num, double vel)
 {
     axis_array[axis_num].ext_offset_vel_limit = vel;
@@ -225,7 +231,10 @@ double axis_get_acc_limit(int axis_num)
 {
     return axis_array[axis_num].acc_limit;
 }
-
+double axis_get_jerk_limit(int axis_num)
+{
+    return axis_array[axis_num].jerk_limit;
+}
 double axis_get_teleop_vel_cmd(int axis_num)
 {
     return axis_array[axis_num].teleop_vel_cmd;
