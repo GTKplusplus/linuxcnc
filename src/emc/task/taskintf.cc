@@ -546,7 +546,7 @@ int emcAxisSetJerk(int axis, double jerk, double ext_offset_jerk)
     jerk = 0.0;
     }
 
-    AxisConfig[axis].MaxJerk = jerk;
+    AxisConfig[axis].Jerk = jerk;
     
     emcmotCommand.command = EMCMOT_SET_AXIS_JERK_LIMIT;
     emcmotCommand.axis = axis;
